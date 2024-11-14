@@ -4,53 +4,116 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+
 <body>
     <div class="container mt-5">
-        <div class="card text-center mb-3" style="background-color: #ffffff;">
+
+        <!-- Título principal -->
+        <div class="card text-center mb-3" style="background-color: #ffffff; border: none;">
             <div class="card-body">
                 <h1 class="card-title" style="color: #000000;">SportsConnect EAFIT</h1>
                 <p style="color: #000000;">
-                    Bienvenido/a a SportsConnect, donde reservar un espacio en nuestra universidad nunca había sido tan fácil!
+                    Bienvenido/a a SportsConnect, donde reservar un espacio en nuestra universidad nunca había sido tan
+                    fácil!
                 </p>
                 {% if not user.is_authenticated %}
                 <div class="alert alert-warning" role="alert">
-                    Si deseas reservar un espacio, por favor INICIA SESIÓN o REGÍSTRATE si es tu primera vez utilizando la plataforma.
+                    Si deseas reservar un espacio, por favor INICIA SESIÓN o REGÍSTRATE si es tu primera vez utilizando
+                    la plataforma.
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <h3 style="color: #000000;">Conoce los espacios que tenemos para ti</h3>
+        <h2 style="color: #000000; text-align: center;">Estos son los espacios que tenemos para ti</h2>
+
+        <!-- Barra de búsqueda -->
+        <form method="get" action="{% url 'home' %}" class="d-flex justify-content-center my-3">
+            <input type="text" name="search" placeholder="Busca por deporte o instalación" class="form-control w-50"
+                value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary ms-2"
+                style="background-color: #000053; border-color: #000053;">
+                Buscar
+            </button>
+        </form>
+
+        <!-- Desplegables de los espacios -->
         <div class="accordion" id="spacesAccordion">
             {% for facility_info in facilities_with_availability %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading{{ facility_info.facility.idFacility }}">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ facility_info.facility.idFacility }}" aria-expanded="false" aria-controls="collapse{{ facility_info.facility.idFacility }}" style="font-family: 'Helvetica', sans-serif; font-weight: bold;">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapse{{ facility_info.facility.idFacility }}" aria-expanded="false"
+                        aria-controls="collapse{{ facility_info.facility.idFacility }}"
+                        style="font-family: 'Helvetica', sans-serif; font-weight: bold;">
                         {{ facility_info.facility.name }}
                     </button>
                 </h2>
-                <div id="collapse{{ facility_info.facility.idFacility }}" class="accordion-collapse collapse" aria-labelledby="heading{{ facility_info.facility.idFacility }}" data-bs-parent="#spacesAccordion">
+                <div id="collapse{{ facility_info.facility.idFacility }}" class="accordion-collapse collapse"
+                    aria-labelledby="heading{{ facility_info.facility.idFacility }}" data-bs-parent="#spacesAccordion">
                     <div class="accordion-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <img src="{{ facility_info.facility.image.url }}" class="img-fluid" alt="{{ facility_info.facility.name }}">
+                                <img src="{{ facility_info.facility.image.url }}" class="img-fluid"
+                                    alt="{{ facility_info.facility.name }}">
                             </div>
                             <div class="col-md-6">
                                 <h4 style="color: #000000;">Descripción:</h4>
                                 <p style="color: #000000;">{{ facility_info.facility.description }}</p>
 
-                                <label for="datePicker_{{ facility_info.facility.idFacility }}" class="form-label" style="color: #000000;">Seleccionar Fecha</label>
-                                <input type="text" class="form-control datePicker" id="datePicker_{{ facility_info.facility.idFacility }}" data-id-facility="{{ facility_info.facility.idFacility }}" placeholder="Seleccionar una fecha">
+                                <label for="datePicker_{{ facility_info.facility.idFacility }}" class="form-label"
+                                    style="color: #000000;">Seleccionar Fecha</label>
+                                <input type="text" class="form-control datePicker"
+                                    id="datePicker_{{ facility_info.facility.idFacility }}"
+                                    data-id-facility="{{ facility_info.facility.idFacility }}"
+                                    placeholder="Seleccionar una fecha">
 
-                                <label for="timeSlotSelect_{{ facility_info.facility.idFacility }}" style="color: #000000;">Horarios Disponibles</label>
-                                <select class="form-select timeSlotSelect" id="timeSlotSelect_{{ facility_info.facility.idFacility }}">
+                                <label for="timeSlotSelect_{{ facility_info.facility.idFacility }}"
+                                    style="color: #000000;">Horarios Disponibles</label>
+                                <select class="form-select timeSlotSelect"
+                                    id="timeSlotSelect_{{ facility_info.facility.idFacility }}">
                                     <option value="">Selecciona un horario...</option>
                                 </select>
+                                <div class="accordion" id="spacesAccordion">
+                                    {% for facility_info in facilities_with_availability %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header"
+                                            id="heading{{ facility_info.facility.idFacility }}">
+                                            <!-- Botón de acordeón y detalles -->
+                                        </h2>
+                                        <div id="collapse{{ facility_info.facility.idFacility }}"
+                                            class="accordion-collapse collapse"
+                                            aria-labelledby="heading{{ facility_info.facility.idFacility }}"
+                                            data-bs-parent="#spacesAccordion">
+                                            <div class="accordion-body">
+                                                <!-- Detalles de la instalación -->
+                                                <p>{{ facility_info.facility.description }}</p>
 
-                                <p id="error_{{ facility_info.facility.idFacility }}" class="text-danger" style="display:none;">Apreciado usuario, no hay horarios disponibles para esta fecha.</p>
+                                                {% if user.is_authenticated %}
+                                                <form
+                                                    action="{% url 'add_to_waitlist' facility_info.facility.idFacility %}"
+                                                    method="POST">
+                                                    {% csrf_token %}
+                                                    <label for="dateInput">Fecha:</label>
+                                                    <input type="date" id="dateInput" name="date" required>
+                                                    <button type="submit" class="btn btn-warning">Añadir a Lista de
+                                                        Espera</button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <p id="error_{{ facility_info.facility.idFacility }}" class="text-danger"
+                                    style="display:none;">Apreciado usuario, no hay horarios disponibles para esta
+                                    fecha.</p>
 
                                 {% if user.is_authenticated %}
-                                    <button class="btn btn-primary mt-auto reserve-btn" style="background-color: #000053; border-color: #000053;" data-id-facility="{{ facility_info.facility.idFacility }}">Reservar</button>
+                                <button class="btn btn-primary mt-auto reserve-btn"
+                                    style="background-color: #000053; border-color: #000053;"
+                                    data-id-facility="{{ facility_info.facility.idFacility }}">Reservar</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -61,7 +124,9 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-VOLgN6fbpTbDXPeJm04IGFsjB5WlwF6kKm5pzoS7Vt5CayQPSiD3l0pvn5sKJdFQ" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-VOLgN6fbpTbDXPeJm04IGFsjB5WlwF6kKm5pzoS7Vt5CayQPSiD3l0pvn5sKJdFQ"
+        crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
 
@@ -152,4 +217,5 @@
 
 </body>
 {% endblock content %}
+
 </html>

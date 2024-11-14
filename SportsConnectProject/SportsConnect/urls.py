@@ -33,6 +33,7 @@ urlpatterns = [
     path('delete_reservation_historial/', reservationViews.delete_reservation_historial, name='delete_reservation_historial'),
     path('adminsite/', facilityViews.adminsite, name='adminsite'),
     path('crearespacio/', facilityViews.crear_espacio, name='crear_espacio'),
+     path('waitlist/add/<int:facility_id>/', reservationViews.add_to_waitlist, name='add_to_waitlist'),
     path('restringiracceso/<int:facility_id>/', facilityViews.restringir_acceso, name='restringir_acceso'),
     path('analiticas/', facilityViews.mostrarGraficas, name='analisis'),
     path('editar/<int:reserva_id>/', reservationViews.editarReserva, name='editar'),

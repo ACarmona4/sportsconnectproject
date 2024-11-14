@@ -16,3 +16,11 @@ class Reservation(models.Model):
     def __str__(self):
         return (f"Usuario #{self.idUser} - {self.facilities.name}. [{self.availability.date} - {self.availability.time_slot}]")
 
+class WaitList(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    facilities = models.ForeignKey(Facilities, on_delete=models.CASCADE)
+    date = models.DateField() 
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} espera para {self.facilities.name} el {self.date}"

@@ -17,12 +17,22 @@ from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from django.http import HttpResponse
 from django.contrib.admin.views.decorators import staff_member_required
-from reservation.models import Facilities, Reservation
+from reservation.models import Facilities, Reservation, WaitList
 from accounts.models import User
+from django.db.models import Q
+from django.contrib import messages
+from datetime import datetime
 
 #Método para mostrar la página principal
 def home(request):
+    query = request.GET.get('search', '')  
     facilities = Facilities.objects.all()
+
+    if query:
+        facilities = facilities.filter(
+            Q(name__icontains=query) | Q(description__icontains=query)
+        )
+
     facilities_with_availability = []
 
     for facility in facilities:
@@ -32,16 +42,51 @@ def home(request):
             'availability': availability
         })
 
-    for facility_info in facilities_with_availability:
-        print(f"Facility: {facility_info['facility'].name}")
-        for slot in facility_info['availability']:
-            print(f"Time Slot: {slot.time_slot}")
-
     context = {
         'facilities_with_availability': facilities_with_availability,
+        'search_query': query,  # Pasar el término de búsqueda al contexto
     }
     return render(request, 'home.html', context)
+@login_required
 
+def add_to_waitlist(request, facility_id):
+    if request.method == 'POST':
+        print(request.POST)  # Esto mostrará todos los datos recibidos del formulario en la consola.
+        date_str = request.POST.get('date')
+        user = request.user
+        date_str = request.POST.get('date')  # Obteniendo la cadena de fecha del formulario
+        print('Fecha recibida:', date_str)
+        facility = get_object_or_404(Facilities, pk=facility_id)
+
+        # Asegúrate de que 'date_str' no sea None o vacío
+        if date_str:
+            # Convertir la cadena de fecha a un objeto de fecha
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d').date()  # Ajusta el formato '%Y-%m-%d' según sea necesario
+            except ValueError:
+                messages.error(request, "Formato de fecha inválido.")
+                print("Formato de fecha inválido.")
+                return redirect('home')
+
+            # Ahora 'date' es un objeto de tipo datetime.date y se puede comparar correctamente
+            if date >= datetime.now().date():
+                new_waitlist_entry = WaitList(user=user, facilities=facility, date=date)
+                new_waitlist_entry.save()
+                messages.success(request, "Añadido a la lista de espera exitosamente.")
+                return render(request, 'add_to_waitlist.html', {'facility': facility})
+            else:
+                print("No puedes añadirte a la lista de espera para fechas pasadas.")
+                messages.error(request, "No puedes añadirte a la lista de espera para fechas pasadas.")
+
+            return redirect('home')
+        else:
+            print("No se proporcionó una fecha.")
+            messages.error(request, "No se proporcionó una fecha.")
+            return redirect('home')
+
+
+
+    
 #Método para generar y obtener la disponibilidad de una instalación en una fecha específica
 @csrf_exempt
 def get_availability_by_date(request):
@@ -58,23 +103,23 @@ def get_availability_by_date(request):
                 # Crear disponibilidad si no existe ya
                 Availability.objects.get_or_create(facilities=facility, date=date_to_check, time_slot=time_slot)
 
-        # Filtrar disponibilidad para la fecha seleccionada, la instalación específica y que no esté restringido
+        # Filtrar disponibilidad para la fecha seleccionada
         availability = Availability.objects.filter(
             facilities_id=idFacility, 
             date=selected_date,
             is_restricted=False  
         ).order_by('time_slot')
 
-        # Obtener los horarios ya reservados para esa fecha y esa instalación
+        # Obtener los horarios
         reserved_slots = Reservation.objects.filter(
             availability__facilities_id=idFacility, 
             date=selected_date
         ).values_list('availability__time_slot', flat=True)
 
-        # Excluir los horarios ya reservados de la lista de disponibilidad
+        # Excluir los horarios ya reservados
         available_slots = availability.exclude(time_slot__in=reserved_slots).distinct()
 
-        # Crear una lista de la disponibilidad restante sin duplicados
+        # Crear una lista de la disponibilidad
         availability_list = [{'id': slot.id, 'time_slot': slot.time_slot.strftime('%H:%M')} for slot in available_slots]
 
         return JsonResponse({'availability': availability_list})
