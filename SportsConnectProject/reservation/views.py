@@ -60,7 +60,6 @@ def add_to_waitlist(request, facility_id):
 
         # Asegúrate de que 'date_str' no sea None o vacío
         if date_str:
-            # Convertir la cadena de fecha a un objeto de fecha
             try:
                 date = datetime.strptime(date_str, '%Y-%m-%d').date()  # Ajusta el formato '%Y-%m-%d' según sea necesario
             except ValueError:
@@ -72,6 +71,8 @@ def add_to_waitlist(request, facility_id):
             if date >= datetime.now().date():
                 new_waitlist_entry = WaitList(user=user, facilities=facility, date=date)
                 new_waitlist_entry.save()
+
+                WaitList_confirmacion(request, user.email, facility.name, date=date)
                 messages.success(request, "Añadido a la lista de espera exitosamente.")
                 return render(request, 'add_to_waitlist.html', {'facility': facility})
             else:
@@ -83,6 +84,26 @@ def add_to_waitlist(request, facility_id):
             print("No se proporcionó una fecha.")
             messages.error(request, "No se proporcionó una fecha.")
             return redirect('home')
+
+def WaitList_confirmacion(request, user_email, facility_name, date):
+    subject = "LISTA DE ESPERA EAFIT"
+    
+    message = f"""
+    Estimado {request.user.first_name},
+
+    Ha sido incluido en la Waitlist.
+
+    Detalles del espacio que esta esperando:
+    - Espacio esperado: {facility_name}
+    - Fecha esperada: {date}  
+    
+    ¡Gracias por usar nuestro servicio!
+
+    Atentamente,
+    El equipo de SportsConnect
+    """
+    
+    return send_email(user_email, subject, message)
 
 
 
